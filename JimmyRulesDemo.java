@@ -64,7 +64,7 @@ public class JimmyRulesDemo {
     }
 
     /**
-     * SER05-J: Do not serialize instances of inner classes[cite: 3].
+     * SER05-J: Do not serialize instances of inner classes.
      * Use static nested classes instead to avoid hidden outer reference issues.
      */
     public static class SafeNestedClass implements Serializable {
@@ -78,7 +78,7 @@ public class JimmyRulesDemo {
     }
 
     /**
-     * MET06-J: Do not invoke overridable methods in clone()[cite: 5].
+     * MET06-J: Do not invoke overridable methods in clone().
      * Helper methods called during cloning must be final or private.
      */
     static final class SecureCloneDemo implements Cloneable {
@@ -98,7 +98,7 @@ public class JimmyRulesDemo {
     }
 
     /**
-     * MET12-J: Do not use finalizers[cite: 5].
+     * MET12-J: Do not use finalizers.
      * Rely on explicit resource management via AutoCloseable instead.
      */
     static final class ExplicitResource implements AutoCloseable {
@@ -109,7 +109,7 @@ public class JimmyRulesDemo {
     }
 
     /**
-     * MET05-J: Ensure that constructors do not call overridable methods[cite: 5].
+     * MET05-J: Ensure that constructors do not call overridable methods.
      * Helper initialization methods should be private or final.
      */
     static final class BaseClass {
@@ -123,7 +123,7 @@ public class JimmyRulesDemo {
     }
 
     /**
-     * ERR01-J: Do not allow exceptions to expose sensitive information[cite: 5].
+     * ERR01-J: Do not allow exceptions to expose sensitive information.
      * Catch low-level exceptions and throw sanitized messages.
      */
     static final class InputParser {
