@@ -1,34 +1,35 @@
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.*;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
- * IT355 Group Project 1 - demos for MET00-J, MET01-J, SER01-J, SER04-J, and SER08-J.
+ * IT355 Group Project 1 - comprehensive security rule demos.
  * Note: Java 24+ turns off the Security Manager, so its checks below don't do anything there.
  *
- * @author James Strickert
+ * @author James Strickert, Ian, & Jimmy
  */
 @SuppressWarnings("removal") // SecurityManager is deprecated
 public class TeamProjectDemo {
-    //Start of James' Section
+    // START OF JAMES' SECTION
+    
     /**
-     * MET00-J: Validate method arguments.
-     * Check inputs before using them so bad data never gets stored.
+     * MET00-J: Validate method arguments[cite: 6].
      */
     static final class Student {
         private String name;
         private int age;
 
-        /**
-         * @param name must not be null or blank
-         * @param age  must be 0-120
-         */
         Student(String name, int age) {
             setName(name);
             setAge(age);
         }
 
-        /** @param name must not be null or blank */
         public void setName(String name) {
             if (name == null || name.isBlank()) {
                 throw new IllegalArgumentException("name cannot be null or blank");
@@ -36,7 +37,6 @@ public class TeamProjectDemo {
             this.name = name;
         }
 
-        /** @param age must be 0-120 */
         public void setAge(int age) {
             if (age < 0 || age > 120) {
                 throw new IllegalArgumentException("age must be 0-120, got " + age);
@@ -51,58 +51,50 @@ public class TeamProjectDemo {
     }
 
     /**
-     * MET01-J: Never use assertions to validate method arguments.
-     * Asserts are off by default, so {@code assert credits > 0;} wouldn't stop anything.
-     * Use a regular if-check instead.
+     * MET01-J: Never use assertions to validate method arguments[cite: 6].
      */
     static final class Schedule {
         private static final int MAX_CREDITS = 18;
         private int totalCredits;
 
-        /** @param credits must be positive and keep the total at 18 or less */
         public void enroll(int credits) {
-            // written this way so a huge number can't overflow past the check
             if (credits <= 0 || credits > MAX_CREDITS - totalCredits) {
                 throw new IllegalArgumentException("invalid credit hours: " + credits);
             }
             totalCredits += credits;
         }
 
-        /** @return total credits enrolled */
         public int getTotalCredits() {
             return totalCredits;
         }
     }
 
     /**
-     * SER01-J: Do not deviate from the proper signatures of serialization methods.
-     * writeObject/readObject must be private void, or Java silently ignores them.
+     * SER01-J: Do not deviate from proper signatures of serialization methods[cite: 6].
      */
     static final class UserProfile implements Serializable {
         @Serial
         private static final long serialVersionUID = 1L; 
 
         private final String username;
-        private transient String password; // transient = not saved
+        private transient String password;
 
         UserProfile(String username, String password) {
             this.username = username;
             this.password = password;
         }
 
-        /** Correct signature: private void, throws IOException. */
         @Serial
         private void writeObject(ObjectOutputStream out) throws IOException {
             System.out.println("  [SER01-J] custom writeObject() was called");
             out.defaultWriteObject();
         }
 
-        /** Correct signature: private void, throws IOException and ClassNotFoundException. */
         @Serial
         private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
             System.out.println("  [SER01-J] custom readObject() was called");
             in.defaultReadObject();
-            password = ""; // transient field comes back null
+            password = ""; 
         }
 
         @Override
@@ -112,8 +104,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * SER04-J: Do not allow serialization and deserialization to bypass the security manager.
-     * The same security check used in the constructor and setter also runs in writeObject/readObject.
+     * SER04-J: Do not allow serialization to bypass the security manager[cite: 6].
      */
     static final class Hometown implements Serializable {
         @Serial
@@ -125,13 +116,11 @@ public class TeamProjectDemo {
             securityCheck();
         }
 
-        /** @param newTown must not be null or blank */
         public void changeTown(String newTown) {
             securityCheck();
             town = validate(newTown);
         }
 
-        /** Throws SecurityException if a Security Manager is installed and denies access. */
         private static void securityCheck() {
             SecurityManager sm = System.getSecurityManager();
             if (sm != null) {
@@ -139,7 +128,6 @@ public class TeamProjectDemo {
             }
         }
 
-        /** @return the name if it isn't null or blank */
         private static String validate(String name) {
             if (name == null || name.isBlank()) {
                 throw new IllegalArgumentException("town cannot be null or blank");
@@ -147,14 +135,12 @@ public class TeamProjectDemo {
             return name;
         }
 
-        /** Same security check before writing. */
         @Serial
         private void writeObject(ObjectOutputStream out) throws IOException {
             securityCheck();
             out.defaultWriteObject();
         }
 
-        /** Same security check before reading, then re-check the data. */
         @Serial
         private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
             securityCheck();
@@ -173,32 +159,24 @@ public class TeamProjectDemo {
     }
 
     /**
-     * SER08-J: Minimize privileges before deserializing from a privileged context.
-     * readObject() runs with no permissions. The allow-list filter also blocks
-     * unexpected classes, which still works on Java 24+.
+     * SER08-J: Minimize privileges before deserializing from a privileged context[cite: 6].
      */
     static final class SafeDeserializer {
         private static final AccessControlContext NO_PERMISSIONS = new AccessControlContext(
                 new ProtectionDomain[] { new ProtectionDomain(null, new Permissions()) });
 
-        /** Only allow this file's classes; "!*" rejects everything else. */
         private static final ObjectInputFilter ALLOW_LIST =
                 ObjectInputFilter.Config.createFilter("TeamProjectDemo$*;!*");
 
         private SafeDeserializer() {
         }
 
-        /**
-         * @param data the serialized bytes
-         * @return the deserialized object
-         */
         static Object deserialize(byte[] data) throws IOException, ClassNotFoundException {
             try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(data))) {
                 in.setObjectInputFilter(ALLOW_LIST);
                 return AccessController.doPrivileged(
                         (PrivilegedExceptionAction<Object>) in::readObject, NO_PERMISSIONS);
             } catch (PrivilegedActionException e) {
-                // unwrap the real exception
                 Exception cause = e.getException();
                 if (cause instanceof IOException io) {
                     throw io;
@@ -211,10 +189,6 @@ public class TeamProjectDemo {
         }
     }
 
-    /**
-     * @param obj object to serialize
-     * @return the object as bytes
-     */
     static byte[] serialize(Serializable obj) throws IOException {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
@@ -222,27 +196,24 @@ public class TeamProjectDemo {
         }
         return bytes.toByteArray();
     }
-    //End of James' section
-    //Start of Jimmy's section
-     /**
-     * MET50-J: Avoid ambiguous or confusing uses of overloading.
-     * Keep overloaded methods distinct to prevent compiler ambiguity or unexpected resolution.
+
+    // START OF JIMMY'S SECTION
+
+    /**
+     * MET50-J: Avoid ambiguous or confusing uses of overloading[cite: 6].
      */
     static final class Calculator {
-        /** @param x integer value */
         public void printValue(int x) {
             System.out.println("  [MET50-J] Processing integer: " + x);
         }
 
-        /** @param text string value */
         public void printValue(String text) {
             System.out.println("  [MET50-J] Processing string: " + text);
         }
     }
 
     /**
-     * MET53-J: Ensure that the clone() method calls super.clone().
-     * Guarantees correct object creation mechanism rather than manual instantiation.
+     * MET53-J: Ensure that the clone() method calls super.clone()[cite: 6].
      */
     static final class DataRecord implements Cloneable {
         private int id;
@@ -263,11 +234,9 @@ public class TeamProjectDemo {
     }
 
     /**
-     * ERR54-J: Use a try-with-resources statement to safely handle closeable resources.
-     * Prevents resource leaks by auto-closing streams.
+     * ERR54-J: Use a try-with-resources statement to safely handle closeable resources[cite: 6].
      */
     static final class FileReaderUtil {
-        /** @param filePath path to read */
         public static String readFirstLine(String filePath) {
             try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
                 System.out.println("  [ERR54-J] Successfully opened resource via try-with-resources");
@@ -280,8 +249,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * SER05-J: Do not serialize instances of inner classes.
-     * Use static nested classes instead to avoid hidden outer reference issues.
+     * SER05-J: Do not serialize instances of inner classes[cite: 6].
      */
     public static class SafeNestedClass implements Serializable {
         @Serial
@@ -294,8 +262,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * MET06-J: Do not invoke overridable methods in clone().
-     * Helper methods called during cloning must be final or private.
+     * MET06-J: Do not invoke overridable methods in clone()[cite: 6].
      */
     static final class SecureCloneDemo implements Cloneable {
         private int state = 50;
@@ -314,8 +281,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * MET12-J: Do not use finalizers.
-     * Rely on explicit resource management via AutoCloseable instead.
+     * MET12-J: Do not use finalizers[cite: 6].
      */
     static final class ExplicitResource implements AutoCloseable {
         @Override
@@ -325,8 +291,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * MET05-J: Ensure that constructors do not call overridable methods.
-     * Helper initialization methods should be private or final.
+     * MET05-J: Ensure that constructors do not call overridable methods[cite: 6].
      */
     static final class BaseClass {
         BaseClass() {
@@ -339,8 +304,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * ERR01-J: Do not allow exceptions to expose sensitive information.
-     * Catch low-level exceptions and throw sanitized messages.
+     * ERR01-J: Do not allow exceptions to expose sensitive information[cite: 6].
      */
     static final class InputParser {
         public static void parse(String input) {
@@ -353,7 +317,104 @@ public class TeamProjectDemo {
         }
     }
 
-    /** Runs a demo for each rule. */
+    // START OF IAN'S SECTION
+
+    /**
+     * OBJ11-J: Ensure that constructors do not throw exceptions[cite: 1].
+     */
+    static final class SafeConstructorRecord {
+        private final String contents;
+
+        private SafeConstructorRecord(String contents) {
+            this.contents = contents;
+        }
+
+        public static Optional<SafeConstructorRecord> fromFile(Path path) {
+            try {
+                return Optional.of(new SafeConstructorRecord(Files.readString(path)));
+            } catch (IOException exception) {
+                return Optional.empty();
+            }
+        }
+
+        public String getContents() {
+            return contents;
+        }
+    }
+
+    /**
+     * OBJ13-J: Prevent references to mutable objects from being exposed[cite: 2].
+     */
+    static final class ExposedRecord {
+        private final Date createdAt;
+
+        public ExposedRecord(Date createdAt) {
+            this.createdAt = new Date(createdAt.getTime());
+        }
+
+        public Date getCreatedAt() {
+            return new Date(createdAt.getTime());
+        }
+    }
+
+    /**
+     * OBJ05-J: Do not return references to private mutable class members[cite: 3].
+     */
+    static final class MutableRoles {
+        private final List<String> roles = new ArrayList<>();
+
+        public MutableRoles(String... initialRoles) {
+            roles.addAll(List.of(initialRoles));
+        }
+
+        public List<String> getRoles() {
+            return List.copyOf(roles);
+        }
+    }
+
+    /**
+     * IDS16-J: Prevent XML injection[cite: 4].
+     */
+    static final class XmlEscaper {
+        public static String createGreetingXml(String userName) {
+            return "<greeting><name>"
+                    + escapeXml(userName)
+                    + "</name></greeting>";
+        }
+
+        private static String escapeXml(String value) {
+            return value
+                    .replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\"", "&quot;")
+                    .replace("'", "&apos;");
+        }
+    }
+
+    /**
+     * IDS07-J: Sanitize untrusted data passed to Runtime.exec()[cite: 5].
+     */
+    static final class CommandSanitizer {
+        private static final Map<String, List<String>> ALLOWED_COMMANDS = Map.of(
+                "list", List.of("java", "-version")
+        );
+
+        public static int runAllowedCommand(String commandName)
+                throws IOException, InterruptedException {
+            List<String> command = ALLOWED_COMMANDS.get(commandName);
+            if (command == null) {
+                throw new IllegalArgumentException("Unsupported command");
+            }
+
+            Process process = new ProcessBuilder(command)
+                    .redirectErrorStream(true)
+                    .start();
+            return process.waitFor();
+        }
+    }
+
+    // MAIN EXECUTION METHOD
     public static void main(String[] args) throws Exception {
         System.out.println("=== MET00-J: Validate method arguments ===");
         System.out.println("  Created: " + new Student("Reggie", 21));
@@ -390,7 +451,8 @@ public class TeamProjectDemo {
         } catch (InvalidClassException e) {
             System.out.println("  Blocked java.util.ArrayList (not on the allow-list)");
         }
-        System.out.println("=== MET50-J: Distinct overloads ===");
+
+        System.out.println("\n=== MET50-J: Distinct overloads ===");
         new Calculator().printValue(100);
 
         System.out.println("\n=== MET53-J: super.clone() ===");
@@ -422,5 +484,36 @@ public class TeamProjectDemo {
         } catch (IllegalArgumentException e) {
             System.out.println("  Caught expected exception: " + e.getMessage());
         }
+
+        System.out.println("\n=== OBJ11-J: Constructor exception avoidance ===");
+        SafeConstructorRecord.fromFile(Path.of("example.txt"))
+                .ifPresentOrElse(
+                        file -> System.out.println("  Read file contents successfully"),
+                        () -> System.out.println("  [OBJ11-J] Handled missing file via Optional safely")
+                );
+
+        System.out.println("\n=== OBJ13-J: Prevent mutable date reference exposure ===");
+        Date originalDate = new Date();
+        ExposedRecord record = new ExposedRecord(originalDate);
+        originalDate.setTime(0);
+        System.out.println("  [OBJ13-J] Stored date remains protected: "
+                + (record.getCreatedAt().getTime() != 0));
+
+        System.out.println("\n=== OBJ05-J: Protect private mutable lists ===");
+        MutableRoles userRoles = new MutableRoles("reader");
+        List<String> returnedRoles = userRoles.getRoles();
+        try {
+            returnedRoles.add("administrator");
+        } catch (UnsupportedOperationException expected) {
+            System.out.println("  [OBJ05-J] The private list was protected from modification");
+        }
+
+        System.out.println("\n=== IDS16-J: Prevent XML injection ===");
+        String unsafeUser = "<script>alert('test')</script>";
+        System.out.println("  [IDS16-J] Escaped XML: " + XmlEscaper.createGreetingXml(unsafeUser));
+
+        System.out.println("\n=== IDS07-J: Sanitize Runtime.exec() input ===");
+        int exitCode = CommandSanitizer.runAllowedCommand("list");
+        System.out.println("  [IDS07-J] Allowed command exited with code: " + exitCode);
     }
 }
