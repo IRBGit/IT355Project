@@ -3,6 +3,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -12,11 +13,13 @@ import java.util.Optional;
  * IT355 Group Project 1 - comprehensive security rule demos.
  * Note: Java 24+ turns off the Security Manager, so its checks below don't do anything there.
  *
- * @author James Strickert, Ian, & Jimmy
+ * @author James Strickert, Ian, Martin, & Jimmy
  */
 @SuppressWarnings("removal") // SecurityManager is deprecated
 public class TeamProjectDemo {
+    // ==========================================
     // START OF JAMES' SECTION
+    // ==========================================
     
     /**
      * MET00-J: Validate method arguments[cite: 6].
@@ -197,7 +200,9 @@ public class TeamProjectDemo {
         return bytes.toByteArray();
     }
 
+    // ==========================================
     // START OF JIMMY'S SECTION
+    // ==========================================
 
     /**
      * MET50-J: Avoid ambiguous or confusing uses of overloading[cite: 6].
@@ -317,7 +322,9 @@ public class TeamProjectDemo {
         }
     }
 
+    // ==========================================
     // START OF IAN'S SECTION
+    // ==========================================
 
     /**
      * OBJ11-J: Ensure that constructors do not throw exceptions[cite: 1].
@@ -414,7 +421,66 @@ public class TeamProjectDemo {
         }
     }
 
+    // ==========================================
+    // START OF MARTIN'S SECTION
+    // ==========================================
+
+    /**
+     * OBJ10-J: Do not use public static nonfinal fields.
+     */
+    public static final double PI_CONSTANT = 3.141;
+
+    /**
+     * ERR08-J: Do not catch NullPointerException or any of its ancestors.
+     */
+    static final class NullCheckUtil {
+        public static boolean isNameMatch(String s, String name) {
+            if (s == null) {
+                return false;
+            }
+            return s.equals(name);
+        }
+    }
+
+    /**
+     * FIO02-J: Detect and handle file-related errors.
+     */
+    static final class FileHandlerUtil {
+        public static boolean deleteFile(File file) {
+            try {
+                Files.delete(file.toPath());
+                return true;
+            } catch (IOException e) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * EXP02-J: Do not use Object.equals() to compare two arrays.
+     */
+    static final class ArrayCompareUtil {
+        public static boolean compareArrays(int[] a, int[] b) {
+            return Arrays.equals(a, b);
+        }
+    }
+
+    /**
+     * EXP00-J: Do not ignore values returned by methods.
+     */
+    static final class StringReverseUtil {
+        public static String reverse(String input) {
+            String back = "";
+            for (int i = input.length(); i > 0; i--) {
+                back += input.substring(i - 1, i);
+            }
+            return back;
+        }
+    }
+
+    // ==========================================
     // MAIN EXECUTION METHOD
+    // ==========================================
     public static void main(String[] args) throws Exception {
         System.out.println("=== MET00-J: Validate method arguments ===");
         System.out.println("  Created: " + new Student("Reggie", 21));
@@ -515,5 +581,30 @@ public class TeamProjectDemo {
         System.out.println("\n=== IDS07-J: Sanitize Runtime.exec() input ===");
         int exitCode = CommandSanitizer.runAllowedCommand("list");
         System.out.println("  [IDS07-J] Allowed command exited with code: " + exitCode);
+
+        // --- Martin's Rules Execution ---
+        System.out.println("\n=== ERR08-J: Explicit null check instead of catching NPE ===");
+        System.out.println("  Comparing null and bob: " + NullCheckUtil.isNameMatch(null, "bob"));
+        System.out.println("  Comparing bob and bob: " + NullCheckUtil.isNameMatch("bob", "bob"));
+
+        System.out.println("\n=== FIO02-J: Detect and handle file errors safely ===");
+        File tempTestFile = File.createTempFile("cert-test", ".tmp");
+        System.out.println("  Created Temp File: " + tempTestFile.getName());
+        System.out.println("  File deleted successfully?: " + FileHandlerUtil.deleteFile(tempTestFile));
+        System.out.println("  Trying to delete again: " + FileHandlerUtil.deleteFile(tempTestFile));
+
+        System.out.println("\n=== EXP02-J: Array content comparison ===");
+        int[] arrA = {1, 2, 3};
+        int[] arrB = {1, 2, 3};
+        System.out.println("  Arrays.equals(): " + ArrayCompareUtil.compareArrays(arrA, arrB));
+
+        System.out.println("\n=== OBJ10-J: Immutable public static final constants ===");
+        double radius = 5.0;
+        System.out.println("  Circle area with radius 5: " + (Math.pow(radius, 2) * PI_CONSTANT));
+
+        System.out.println("\n=== EXP00-J: Utilizing method return values ===");
+        String originalName = "Walter";
+        String reversedName = StringReverseUtil.reverse(originalName);
+        System.out.println("  Original: " + originalName + ", Reversed: " + reversedName);
     }
 }

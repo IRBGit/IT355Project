@@ -1,3 +1,4 @@
+package individuals.Jimmy;
 import java.io.*;
 
 /**
