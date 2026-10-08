@@ -13,13 +13,11 @@ import java.util.Optional;
  * IT355 Group Project 1 - comprehensive security rule demos.
  * Note: Java 24+ turns off the Security Manager, so its checks below don't do anything there.
  *
- * @author James Strickert, Ian, Martin, & Jimmy
+ * @author James, Ian, Martin, & Jimmy
  */
 @SuppressWarnings("removal") // SecurityManager is deprecated
 public class TeamProjectDemo {
-    // ==========================================
     // START OF JAMES' SECTION
-    // ==========================================
     
     /**
      * MET00-J: Validate method arguments[cite: 6].
@@ -200,9 +198,7 @@ public class TeamProjectDemo {
         return bytes.toByteArray();
     }
 
-    // ==========================================
     // START OF JIMMY'S SECTION
-    // ==========================================
 
     /**
      * MET50-J: Avoid ambiguous or confusing uses of overloading[cite: 6].
@@ -322,9 +318,7 @@ public class TeamProjectDemo {
         }
     }
 
-    // ==========================================
     // START OF IAN'S SECTION
-    // ==========================================
 
     /**
      * OBJ11-J: Ensure that constructors do not throw exceptions[cite: 1].
@@ -421,9 +415,8 @@ public class TeamProjectDemo {
         }
     }
 
-    // ==========================================
     // START OF MARTIN'S SECTION
-    // ==========================================
+    
 
     /**
      * OBJ10-J: Do not use public static nonfinal fields.
@@ -478,9 +471,7 @@ public class TeamProjectDemo {
         }
     }
 
-    // ==========================================
     // MAIN EXECUTION METHOD
-    // ==========================================
     public static void main(String[] args) throws Exception {
         System.out.println("=== MET00-J: Validate method arguments ===");
         System.out.println("  Created: " + new Student("Reggie", 21));
