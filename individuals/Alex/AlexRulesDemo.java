@@ -4,6 +4,7 @@ import java.io.*;
 import java.lang.reflect.Proxy;
 import java.sql.*;
 import java.util.*;
+import java.util.Date;
 import java.util.logging.*;
 
 /**
@@ -13,40 +14,48 @@ import java.util.logging.*;
  *
  * @author Alex Reyes
  */
-
 public class AlexRulesDemo {
     
     /**
      * IDS00-J: Prevent SQL injection.
-     * Use prepared statements to safely handle user input.
      */
     static final class SafeSqlDemo {
-
-        static void findUser(Connection connection, String username)
-                throws SQLException {
-
+        static void findUser(Connection connection, String username) throws SQLException {
             String sql = "SELECT id FROM users WHERE username = ?";
-
-            try (PreparedStatement statement =
-                    connection.prepareStatement(sql)) {
-
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
                 statement.setString(1, username);
                 statement.execute();
+                System.out.println("  [IDS00-J] Prepared statement executed safely for: " + username);
             }
+        }
+
+        static Connection demoConnection() {
+            return (Connection) Proxy.newProxyInstance(
+                    Connection.class.getClassLoader(),
+                    new Class<?>[]{Connection.class},
+                    (proxy, method, args) -> {
+                        if (method.getName().equals("prepareStatement")) {
+                            return Proxy.newProxyInstance(
+                                    PreparedStatement.class.getClassLoader(),
+                                    new Class<?>[]{PreparedStatement.class},
+                                    (pProxy, pMethod, pArgs) -> {
+                                        if (pMethod.getName().equals("execute")) return true;
+                                        if (pMethod.getName().equals("close")) return null;
+                                        return null;
+                                    }
+                            );
+                        }
+                        if (method.getName().equals("close")) return null;
+                        return null;
+                    }
+            );
         }
     }
 
     /**
      * FIO08-J: Distinguish stream data from the end-of-stream value -1.
-     * Read into an int before converting any value to a byte or char.
      */
     static final class SafeStreamDemo {
-        /**
-         * Prints every byte, including FF, without mistaking it for -1.
-         *
-         * @param bytes sample stream contents
-         * @throws IOException if reading fails
-         */
         static void readBytes(byte[] bytes) throws IOException {
             try (InputStream input = new ByteArrayInputStream(bytes)) {
                 int value;
@@ -59,14 +68,12 @@ public class AlexRulesDemo {
         }
     }
 
-    
     /**
      * SER12-J: Prevent deserialization of untrusted data.
-     * Only allow approved classes to be deserialized.
      */
     static final class SafeDeserializationDemo {
-
         static final class SafeMessage implements Serializable {
+            @Serial
             private static final long serialVersionUID = 1L;
             private final String text;
 
@@ -79,18 +86,19 @@ public class AlexRulesDemo {
             }
         }
 
-        static SafeMessage readAllowedMessage(byte[] data)
-                throws IOException, ClassNotFoundException {
+        static byte[] makeSampleBytes(Serializable obj) throws IOException {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
+                out.writeObject(obj);
+            }
+            return bytes.toByteArray();
+        }
 
-            try (ObjectInputStream input = new ObjectInputStream(
-                    new ByteArrayInputStream(data))) {
-
+        static SafeMessage readAllowedMessage(byte[] data) throws IOException, ClassNotFoundException {
+            try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(data))) {
                 String filter = "maxdepth=4;maxrefs=10;maxbytes=2048;"
                         + SafeMessage.class.getName() + ";!*";
-
-                input.setObjectInputFilter(
-                        ObjectInputFilter.Config.createFilter(filter));
-
+                input.setObjectInputFilter(ObjectInputFilter.Config.createFilter(filter));
                 return (SafeMessage) input.readObject();
             }
         }
@@ -98,14 +106,8 @@ public class AlexRulesDemo {
 
     /**
      * EXP03-J: Compare the values of boxed primitives, not their references.
-     * equals() correctly compares two Integer objects' contents.
      */
     static final class SafeComparisonDemo {
-        /**
-         * @param first first boxed number
-         * @param second second boxed number
-         * @return true when both boxed numbers have equal values
-         */
         static boolean sameNumber(Integer first, Integer second) {
             return Objects.equals(first, second);
         }
@@ -113,62 +115,51 @@ public class AlexRulesDemo {
 
     /**
      * ERR02-J: Prevent exceptions while logging data.
-     * Use Java's logging API instead of treating System.err as a logger.
      */
     static final class SafeLoggingDemo {
-        private static final Logger LOGGER =
-                Logger.getLogger(SafeLoggingDemo.class.getName());
+        private static final Logger LOGGER = Logger.getLogger(SafeLoggingDemo.class.getName());
 
-        /** Records a security error through a real Logger. */
         static void demonstrate() {
             try {
                 throw new SecurityException("Access denied");
             } catch (SecurityException exception) {
-                LOGGER.log(Level.WARNING,
-                        "[ERR02-J] An unauthorized action was blocked", exception);
+                LOGGER.log(Level.WARNING, "[ERR02-J] An unauthorized action was blocked", exception);
             }
         }
     }
 
     /**
      * OBJ51-J: Minimize access to classes and their members.
-     * The internal account class and its data are not publicly accessible.
      */
     static final class PrivateAccount {
         private int balance;
 
-        /** @param startingBalance opening amount */
-        private PrivateAccount(int startingBalance) {
+        PrivateAccount(int startingBalance) {
             balance = startingBalance;
         }
 
-        /** @param amount amount to deposit */
-        private void deposit(int amount) {
+        void deposit(int amount) {
             if (amount < 0) {
                 throw new IllegalArgumentException("Deposit cannot be negative");
             }
             balance += amount;
         }
 
-        /** @return current account balance */
-        private int getBalance() {
+        int getBalance() {
             return balance;
         }
     }
 
     /**
      * MET52-J: Do not clone untrusted method parameters.
-     * Make a copy using a trusted constructor instead of input.clone().
      */
     static final class SafeDateStore {
-        private final Date savedDate;
+        private final java.util.Date savedDate;
 
-        /** @param input a potentially untrusted mutable Date object */
-        SafeDateStore(Date input) {
-            savedDate = new Date(Objects.requireNonNull(input).getTime());
+        SafeDateStore(java.util.Date input) {
+            savedDate = new java.util.Date(Objects.requireNonNull(input).getTime());
         }
 
-        /** @return a timestamp that is not affected by changes to input */
         long getTime() {
             return savedDate.getTime();
         }
@@ -176,23 +167,17 @@ public class AlexRulesDemo {
 
     /**
      * ERR51-J: Prefer specific user-defined exception types.
-     * Callers can catch InvalidScoreException instead of a broad Exception.
      */
     static final class ScoreValidator {
-        /** Exception for an invalid score. */
         static final class InvalidScoreException extends Exception {
+            @Serial
             private static final long serialVersionUID = 1L;
 
-            /** @param message description of the invalid score */
             InvalidScoreException(String message) {
                 super(message);
             }
         }
 
-        /**
-         * @param score the number to check
-         * @throws InvalidScoreException when the score is outside 0 through 100
-         */
         static void checkScore(int score) throws InvalidScoreException {
             if (score < 0 || score > 100) {
                 throw new InvalidScoreException("Score must be between 0 and 100");
@@ -200,12 +185,6 @@ public class AlexRulesDemo {
         }
     }
 
-    /**
-     * Runs every assigned rule and the three unclaimed recommendations.
-     *
-     * @param args unused command-line arguments
-     * @throws Exception if an unexpected demo error occurs
-     */
     public static void main(String[] args) throws Exception {
         System.out.println("=== IDS00-J: Prepared statement ===");
         try (Connection connection = SafeSqlDemo.demoConnection()) {
@@ -220,7 +199,7 @@ public class AlexRulesDemo {
                 new SafeDeserializationDemo.SafeMessage("Safe data"));
         System.out.println("  [SER12-J] Allowed: "
                 + SafeDeserializationDemo.readAllowedMessage(allowed).getText());
-        byte[] disallowed = SafeDeserializationDemo.makeSampleBytes(new Date(0L));
+        byte[] disallowed = SafeDeserializationDemo.makeSampleBytes(new java.util.Date(0L));
         try {
             SafeDeserializationDemo.readAllowedMessage(disallowed);
             throw new AssertionError("Disallowed object was not blocked");
@@ -244,7 +223,7 @@ public class AlexRulesDemo {
                 + account.getBalance());
 
         System.out.println("\n=== MET52-J: Trusted defensive copy ===");
-        Date original = new Date(5000L);
+        java.util.Date original = new java.util.Date(5000L);
         SafeDateStore store = new SafeDateStore(original);
         original.setTime(9999L);
         System.out.println("  [MET52-J] Stored time stays at: " + store.getTime());
