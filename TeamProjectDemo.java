@@ -1,26 +1,27 @@
 import java.io.*;
+import java.lang.reflect.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.*;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.sql.*;
+import java.util.*;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.logging.*;
 
 /**
- * IT355 Group Project 1 - comprehensive security rule demos.
+ * IT355 Group Project 1 - comprehensive security rule and recommendation demos.
  * Note: Java 24+ turns off the Security Manager, so its checks below don't do anything there.
  *
- * @author James, Ian, Martin, & Jimmy
+ * @author James Strickert, Ian, Martin, Jimmy, & Alex
  */
 @SuppressWarnings("removal") // SecurityManager is deprecated
 public class TeamProjectDemo {
+    // ------------------------------------------
     // START OF JAMES' SECTION
+    // ------------------------------------------
     
     /**
-     * MET00-J: Validate method arguments[cite: 6].
+     * MET00-J: Validate method arguments.
      */
     static final class Student {
         private String name;
@@ -52,7 +53,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * MET01-J: Never use assertions to validate method arguments[cite: 6].
+     * MET01-J: Never use assertions to validate method arguments.
      */
     static final class Schedule {
         private static final int MAX_CREDITS = 18;
@@ -71,7 +72,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * SER01-J: Do not deviate from proper signatures of serialization methods[cite: 6].
+     * SER01-J: Do not deviate from proper signatures of serialization methods.
      */
     static final class UserProfile implements Serializable {
         @Serial
@@ -105,7 +106,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * SER04-J: Do not allow serialization to bypass the security manager[cite: 6].
+     * SER04-J: Do not allow serialization to bypass the security manager.
      */
     static final class Hometown implements Serializable {
         @Serial
@@ -160,7 +161,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * SER08-J: Minimize privileges before deserializing from a privileged context[cite: 6].
+     * SER08-J: Minimize privileges before deserializing from a privileged context.
      */
     static final class SafeDeserializer {
         private static final AccessControlContext NO_PERMISSIONS = new AccessControlContext(
@@ -198,10 +199,12 @@ public class TeamProjectDemo {
         return bytes.toByteArray();
     }
 
+    // ------------------------------------------
     // START OF JIMMY'S SECTION
+    // ------------------------------------------
 
     /**
-     * MET50-J: Avoid ambiguous or confusing uses of overloading[cite: 6].
+     * MET50-J: Avoid ambiguous or confusing uses of overloading.
      */
     static final class Calculator {
         public void printValue(int x) {
@@ -214,7 +217,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * MET53-J: Ensure that the clone() method calls super.clone()[cite: 6].
+     * MET53-J: Ensure that the clone() method calls super.clone().
      */
     static final class DataRecord implements Cloneable {
         private int id;
@@ -235,7 +238,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * ERR54-J: Use a try-with-resources statement to safely handle closeable resources[cite: 6].
+     * ERR54-J: Use a try-with-resources statement to safely handle closeable resources.
      */
     static final class FileReaderUtil {
         public static String readFirstLine(String filePath) {
@@ -250,7 +253,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * SER05-J: Do not serialize instances of inner classes[cite: 6].
+     * SER05-J: Do not serialize instances of inner classes.
      */
     public static class SafeNestedClass implements Serializable {
         @Serial
@@ -263,7 +266,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * MET06-J: Do not invoke overridable methods in clone()[cite: 6].
+     * MET06-J: Do not invoke overridable methods in clone().
      */
     static final class SecureCloneDemo implements Cloneable {
         private int state = 50;
@@ -282,7 +285,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * MET12-J: Do not use finalizers[cite: 6].
+     * MET12-J: Do not use finalizers.
      */
     static final class ExplicitResource implements AutoCloseable {
         @Override
@@ -292,7 +295,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * MET05-J: Ensure that constructors do not call overridable methods[cite: 6].
+     * MET05-J: Ensure that constructors do not call overridable methods.
      */
     static final class BaseClass {
         BaseClass() {
@@ -305,7 +308,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * ERR01-J: Do not allow exceptions to expose sensitive information[cite: 6].
+     * ERR01-J: Do not allow exceptions to expose sensitive information.
      */
     static final class InputParser {
         public static void parse(String input) {
@@ -318,10 +321,12 @@ public class TeamProjectDemo {
         }
     }
 
+    // ------------------------------------------
     // START OF IAN'S SECTION
+    // ------------------------------------------
 
     /**
-     * OBJ11-J: Ensure that constructors do not throw exceptions[cite: 1].
+     * OBJ11-J: Ensure that constructors do not throw exceptions.
      */
     static final class SafeConstructorRecord {
         private final String contents;
@@ -344,7 +349,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * OBJ13-J: Prevent references to mutable objects from being exposed[cite: 2].
+     * OBJ13-J: Prevent references to mutable objects from being exposed.
      */
     static final class ExposedRecord {
         private final Date createdAt;
@@ -359,7 +364,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * OBJ05-J: Do not return references to private mutable class members[cite: 3].
+     * OBJ05-J: Do not return references to private mutable class members.
      */
     static final class MutableRoles {
         private final List<String> roles = new ArrayList<>();
@@ -374,7 +379,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * IDS16-J: Prevent XML injection[cite: 4].
+     * IDS16-J: Prevent XML injection.
      */
     static final class XmlEscaper {
         public static String createGreetingXml(String userName) {
@@ -394,7 +399,7 @@ public class TeamProjectDemo {
     }
 
     /**
-     * IDS07-J: Sanitize untrusted data passed to Runtime.exec()[cite: 5].
+     * IDS07-J: Sanitize untrusted data passed to Runtime.exec().
      */
     static final class CommandSanitizer {
         private static final Map<String, List<String>> ALLOWED_COMMANDS = Map.of(
@@ -415,8 +420,9 @@ public class TeamProjectDemo {
         }
     }
 
+    // ------------------------------------------
     // START OF MARTIN'S SECTION
-    
+    // ------------------------------------------
 
     /**
      * OBJ10-J: Do not use public static nonfinal fields.
@@ -471,7 +477,174 @@ public class TeamProjectDemo {
         }
     }
 
+    // ------------------------------------------
+    // START OF ALEX'S SECTION
+    // ------------------------------------------
+
+    /**
+     * IDS00-J: Prevent SQL injection.
+     */
+    static final class SafeSqlDemo {
+        static void findUser(Connection connection, String username) throws SQLException {
+            String sql = "SELECT id FROM users WHERE username = ?";
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setString(1, username);
+                statement.execute();
+                System.out.println("  [IDS00-J] Prepared statement executed safely for: " + username);
+            }
+        }
+
+        static Connection createDummyConnection() {
+            return (Connection) Proxy.newProxyInstance(
+                    Connection.class.getClassLoader(),
+                    new Class<?>[]{Connection.class},
+                    (proxy, method, args) -> {
+                        if (method.getName().equals("prepareStatement")) {
+                            return Proxy.newProxyInstance(
+                                    PreparedStatement.class.getClassLoader(),
+                                    new Class<?>[]{PreparedStatement.class},
+                                    (pProxy, pMethod, pArgs) -> {
+                                        if (pMethod.getName().equals("execute")) return true;
+                                        if (pMethod.getName().equals("close")) return null;
+                                        return null;
+                                    }
+                            );
+                        }
+                        if (method.getName().equals("close")) return null;
+                        return null;
+                    }
+            );
+        }
+    }
+
+    /**
+     * FIO08-J: Distinguish stream data from the end-of-stream value -1.
+     */
+    static final class SafeStreamDemo {
+        static void readBytes(byte[] bytes) throws IOException {
+            try (InputStream input = new ByteArrayInputStream(bytes)) {
+                int value;
+                StringBuilder result = new StringBuilder();
+                while ((value = input.read()) != -1) {
+                    result.append(String.format("%02X ", value));
+                }
+                System.out.println("  [FIO08-J] All bytes read: " + result.toString().trim());
+            }
+        }
+    }
+
+    /**
+     * SER12-J: Prevent deserialization of untrusted data.
+     */
+    static final class SafeDeserializationDemo {
+        static final class SafeMessage implements Serializable {
+            @Serial
+            private static final long serialVersionUID = 1L;
+            private final String text;
+
+            SafeMessage(String text) {
+                this.text = text;
+            }
+
+            String getText() {
+                return text;
+            }
+        }
+
+        static SafeMessage readAllowedMessage(byte[] data) throws IOException, ClassNotFoundException {
+            try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(data))) {
+                String filter = "maxdepth=4;maxrefs=10;maxbytes=2048;"
+                        + SafeMessage.class.getName() + ";!*";
+                input.setObjectInputFilter(ObjectInputFilter.Config.createFilter(filter));
+                return (SafeMessage) input.readObject();
+            }
+        }
+    }
+
+    /**
+     * EXP03-J: Compare the values of boxed primitives, not their references.
+     */
+    static final class SafeComparisonDemo {
+        static boolean sameNumber(Integer first, Integer second) {
+            return Objects.equals(first, second);
+        }
+    }
+
+    /**
+     * ERR02-J: Prevent exceptions while logging data.
+     */
+    static final class SafeLoggingDemo {
+        private static final Logger LOGGER = Logger.getLogger(SafeLoggingDemo.class.getName());
+
+        static void demonstrate() {
+            try {
+                throw new SecurityException("Access denied");
+            } catch (SecurityException exception) {
+                LOGGER.log(Level.WARNING, "[ERR02-J] An unauthorized action was blocked", exception);
+            }
+        }
+    }
+
+    /**
+     * OBJ51-J: Minimize access to classes and their members.
+     */
+    static final class PrivateAccount {
+        private int balance;
+
+        PrivateAccount(int startingBalance) {
+            balance = startingBalance;
+        }
+
+        void deposit(int amount) {
+            if (amount < 0) {
+                throw new IllegalArgumentException("Deposit cannot be negative");
+            }
+            balance += amount;
+        }
+
+        int getBalance() {
+            return balance;
+        }
+    }
+
+    /**
+     * MET52-J: Do not clone untrusted method parameters.
+     */
+    static final class SafeDateStore {
+        private final Date savedDate;
+
+        SafeDateStore(Date input) {
+            savedDate = new Date(Objects.requireNonNull(input).getTime());
+        }
+
+        long getTime() {
+            return savedDate.getTime();
+        }
+    }
+
+    /**
+     * ERR51-J: Prefer specific user-defined exception types.
+     */
+    static final class ScoreValidator {
+        static final class InvalidScoreException extends Exception {
+            @Serial
+            private static final long serialVersionUID = 1L;
+
+            InvalidScoreException(String message) {
+                super(message);
+            }
+        }
+
+        static void checkScore(int score) throws InvalidScoreException {
+            if (score < 0 || score > 100) {
+                throw new InvalidScoreException("Score must be between 0 and 100");
+            }
+        }
+    }
+
+    // ------------------------------------------
     // MAIN EXECUTION METHOD
+    // ------------------------------------------
     public static void main(String[] args) throws Exception {
         System.out.println("=== MET00-J: Validate method arguments ===");
         System.out.println("  Created: " + new Student("Reggie", 21));
@@ -597,5 +770,55 @@ public class TeamProjectDemo {
         String originalName = "Walter";
         String reversedName = StringReverseUtil.reverse(originalName);
         System.out.println("  Original: " + originalName + ", Reversed: " + reversedName);
+
+        // --- Alex's Rules & Recommendations Execution ---
+        System.out.println("\n=== IDS00-J: Prepared statement ===");
+        try (Connection connection = SafeSqlDemo.createDummyConnection()) {
+            SafeSqlDemo.findUser(connection, "alex' OR '1'='1");
+        }
+
+        System.out.println("\n=== FIO08-J: End-of-stream check ===");
+        SafeStreamDemo.readBytes(new byte[] { 0x41, (byte) 0xFF, 0x42 });
+
+        System.out.println("\n=== SER12-J: Allowlisted deserialization ===");
+        byte[] allowed = serialize(new SafeDeserializationDemo.SafeMessage("Safe data"));
+        System.out.println("  [SER12-J] Allowed: "
+                + SafeDeserializationDemo.readAllowedMessage(allowed).getText());
+        byte[] disallowed = serialize(new Date(0L));
+        try {
+            SafeDeserializationDemo.readAllowedMessage(disallowed);
+            throw new AssertionError("Disallowed object was not blocked");
+        } catch (InvalidClassException expected) {
+            System.out.println("  [SER12-J] Blocked an untrusted class");
+        }
+
+        System.out.println("\n=== EXP03-J: Compare boxed values ===");
+        Integer firstInt = Integer.valueOf(1000);
+        Integer secondInt = Integer.valueOf(1000);
+        System.out.println("  [EXP03-J] Same numerical value: "
+                + SafeComparisonDemo.sameNumber(firstInt, secondInt));
+
+        System.out.println("\n=== ERR02-J: Reliable error logging ===");
+        SafeLoggingDemo.demonstrate();
+
+        System.out.println("\n=== OBJ51-J: Private members ===");
+        PrivateAccount acc = new PrivateAccount(50);
+        acc.deposit(25);
+        System.out.println("  [OBJ51-J] Updated through internal method: "
+                + acc.getBalance());
+
+        System.out.println("\n=== MET52-J: Trusted defensive copy ===");
+        Date origDate = new Date(5000L);
+        SafeDateStore store = new SafeDateStore(origDate);
+        origDate.setTime(9999L);
+        System.out.println("  [MET52-J] Stored time stays at: " + store.getTime());
+
+        System.out.println("\n=== ERR51-J: Specific exception type ===");
+        try {
+            ScoreValidator.checkScore(150);
+        } catch (ScoreValidator.InvalidScoreException expected) {
+            System.out.println("  [ERR51-J] Caught expected error: "
+                    + expected.getMessage());
+        }
     }
 }
