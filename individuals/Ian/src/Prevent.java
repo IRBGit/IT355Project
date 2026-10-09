@@ -11,17 +11,10 @@ public class Prevent {
     }
 
     public static String createGreetingXml(String userName) {
-        return "<greeting><name>"
-                + escapeXml(userName)
-                + "</name></greeting>";
+        return "<greeting><name>" + escapeXml(userName) + "</name></greeting>";
     }
 
     private static String escapeXml(String value) {
-        return value
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&apos;");
+        return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&apos;");
     }
 }
